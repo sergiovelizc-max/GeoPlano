@@ -1,0 +1,50 @@
+name: GeoPlano
+options:
+  bundleIdPrefix: cl.geoplano
+  deploymentTarget:
+    iOS: "16.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  GeoPlano:
+    type: application
+    platform: iOS
+    sources: [GeoPlano]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: cl.geoplano.app
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_ENTITLEMENTS: GeoPlano/GeoPlano.entitlements
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: "$(GEOPLANO_TEAM_ID)"
+        GENERATE_INFOPLIST_FILE: NO
+    info:
+      path: GeoPlano/Info.plist
+      properties:
+        CFBundleDisplayName: GeoPlano
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        UILaunchScreen: {}
+        UIRequiredDeviceCapabilities: [arm64]
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        ITSAppUsesNonExemptEncryption: false
+        NSLocationWhenInUseUsageDescription: "GeoPlano muestra tu posición sobre los planos y graba tus recorridos."
+        NSLocationAlwaysAndWhenInUseUsageDescription: "GeoPlano sigue grabando tu track con la pantalla apagada."
+        UIBackgroundModes: [location]
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: false
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: PDF
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [com.adobe.pdf]
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+          UISceneConfigurations:
+            CPTemplateApplicationSceneSessionRoleApplication:
+              - UISceneConfigurationName: CarPlay
+                UISceneDelegateClassName: "$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate"
