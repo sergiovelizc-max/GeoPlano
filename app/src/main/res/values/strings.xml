@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">GeoPlano</string>
+    <string name="import_pdf">Importar plano PDF</string>
+    <string name="no_maps">Aún no hay planos.\nToca + para importar un PDF georreferenciado (por ejemplo, exportado desde ArcGIS Pro con “Exportar información de georreferencia”).</string>
+    <string name="tracking_channel">Grabación de track</string>
+    <string name="tracking_running">Grabando track…</string>
+</resources>

@@ -1,0 +1,14 @@
+<resources>
+    <style name="Theme.GeoPlano" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/brand</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorPrimaryContainer">#CFE7D6</item>
+        <item name="colorSecondary">@color/accent</item>
+        <item name="colorSecondaryContainer">#FBE3BD</item>
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@color/brand_dark</item>
+    </style>
+    <style name="Theme.GeoPlano.Map">
+        <item name="android:windowBackground">#DDDDDD</item>
+    </style>
+</resources>

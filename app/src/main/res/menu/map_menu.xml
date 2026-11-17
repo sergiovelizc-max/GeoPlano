@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item android:id="@+id/action_measure" android:icon="@drawable/ic_ruler" android:title="Medir distancia / área" app:showAsAction="ifRoom" app:iconTint="#FFFFFF" />
+    <item android:id="@+id/action_placemarks" android:title="Marcadores" app:showAsAction="never" />
+    <item android:id="@+id/action_tracks" android:title="Tracks" app:showAsAction="never" />
+    <item android:id="@+id/action_export" android:title="Exportar KML / CSV" app:showAsAction="never" />
+    <item android:id="@+id/action_info" android:title="Información del plano" app:showAsAction="never" />
+</menu>

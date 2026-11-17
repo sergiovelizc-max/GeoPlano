@@ -1,0 +1,7 @@
+<resources>
+    <color name="brand">#1F5C3A</color>
+    <color name="brand_dark">#143D27</color>
+    <color name="accent">#E8A33D</color>
+    <color name="location">#1E88E5</color>
+    <color name="bg">#F4F2EC</color>
+</resources>
