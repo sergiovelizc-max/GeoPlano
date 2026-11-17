@@ -129,7 +129,13 @@ class CarMapScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycl
     private fun updateStatus(force: Boolean) {
         val m = current
         val loc = LocationRepository.location.value
+        val c = renderer.crosshairGeo()
         val s = when {
+            m != null && c != null && loc != null -> {
+                val d = GeoMath.distance(loc.latitude, loc.longitude, c[0], c[1])
+                val b = GeoMath.bearing(loc.latitude, loc.longitude, c[0], c[1])
+                "Mira: " + GeoMath.formatDistance(roundKm(d)) + " al " + GeoMath.cardinal(b)
+            }
             m == null -> ""
             !m.isGeoreferenced -> "Plano sin georreferencia"
             !LocationRepository.hasPermission(carContext) -> "Concede la ubicación en el teléfono"
@@ -176,6 +182,7 @@ class CarMapScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycl
             .addAction(Action.Builder().setIcon(icon(R.drawable.ic_my_location)).setOnClickListener {
                 renderer.follow = true
                 renderer.centerOnLocation(true)
+                updateStatus(force = true)
             }.build())
             .addAction(Action.Builder().setIcon(icon(R.drawable.ic_zoom_in)).setOnClickListener { renderer.zoom(1.6f) }.build())
             .addAction(Action.Builder().setIcon(icon(R.drawable.ic_zoom_out)).setOnClickListener { renderer.zoom(1 / 1.6f) }.build())
@@ -185,7 +192,12 @@ class CarMapScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycl
             .setActionStrip(actionStrip)
             .setMapActionStrip(mapStrip)
             .setBackgroundColor(CarColor.createCustom(0xFF1F5C3A.toInt(), 0xFF1F5C3A.toInt()))
-            .setPanModeListener { isInPanMode -> inPanMode = isInPanMode; if (isInPanMode) renderer.follow = false }
+            .setPanModeListener { isInPanMode ->
+                inPanMode = isInPanMode
+                if (isInPanMode) renderer.follow = false
+                renderer.draw()
+                updateStatus(force = true)
+            }
 
         val m = current
         if (m != null && !inPanMode) {

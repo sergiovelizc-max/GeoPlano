@@ -54,6 +54,13 @@ class MapCanvasView @JvmOverloads constructor(
     var measure: List<DoubleArray> = emptyList()
         set(v) { field = v; invalidate() }
 
+    /** Mira central: se muestra al desplazarse por el plano (no en modo seguir). */
+    var crosshair: Boolean = false
+        set(v) { field = v; lastCenter = null; invalidate() }
+    /** Llamado cuando cambia el punto geográfico bajo la mira. */
+    var onCenterChanged: ((lat: Double, lon: Double) -> Unit)? = null
+    private var lastCenter: DoubleArray? = null
+
     /** Llamado (con retardo) cuando cambia la zona visible: rect de página visible y escala px/pt. */
     var onViewportChanged: ((RectF, Float) -> Unit)? = null
     var onLongPressGeo: ((lat: Double, lon: Double) -> Unit)? = null
@@ -88,6 +95,16 @@ class MapCanvasView @JvmOverloads constructor(
         color = Color.WHITE; style = Paint.Style.STROKE; strokeWidth = 3f * density
     }
     private val pts = FloatArray(2)
+    private val crossPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.rgb(110, 110, 110); style = Paint.Style.STROKE; strokeWidth = 3.5f * density
+        strokeCap = Paint.Cap.ROUND
+    }
+    private val crossHalo = Paint(crossPaint).apply { color = Color.argb(170, 255, 255, 255); strokeWidth = 7f * density }
+    private val crossDot = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(110, 110, 110) }
+    private val guidePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(200, 30, 136, 229); style = Paint.Style.STROKE; strokeWidth = 2.5f * density
+        pathEffect = android.graphics.DashPathEffect(floatArrayOf(10f * density, 8f * density), 0f)
+    }
 
     fun setMap(m: MapEntry, baseBitmap: Bitmap) {
         map = m
@@ -279,7 +296,42 @@ class MapCanvasView @JvmOverloads constructor(
         activeTrack?.let { drawTrack(canvas, it, activeTrackPaint) }
         drawMeasure(canvas)
         placemarks.forEach { drawPin(canvas, it) }
+        if (crosshair) drawGuideLine(canvas)
         drawLocation(canvas)
+        if (crosshair) {
+            drawCrosshair(canvas)
+            screenToGeo(width / 2f, height / 2f)?.let { c ->
+                val prev = lastCenter
+                if (prev == null || prev[0] != c[0] || prev[1] != c[1]) {
+                    lastCenter = c
+                    post { onCenterChanged?.invoke(c[0], c[1]) }
+                }
+            }
+        }
+    }
+
+    /** Línea punteada desde tu posición hasta la mira. */
+    private fun drawGuideLine(canvas: Canvas) {
+        val loc = location ?: return
+        val tmp = FloatArray(2)
+        if (!geoToScreen(loc.latitude, loc.longitude, tmp)) return
+        canvas.drawLine(tmp[0], tmp[1], width / 2f, height / 2f, guidePaint)
+    }
+
+    /** Mira: círculo con cuatro marcas hacia el centro y un punto central. */
+    private fun drawCrosshair(canvas: Canvas) {
+        val cx = width / 2f; val cy = height / 2f
+        val r = 30f * density
+        val tick = 11f * density
+        for (p in arrayOf(crossHalo, crossPaint)) {
+            canvas.drawCircle(cx, cy, r, p)
+            canvas.drawLine(cx, cy - r - tick * 0.35f, cx, cy - r + tick, p)
+            canvas.drawLine(cx, cy + r + tick * 0.35f, cx, cy + r - tick, p)
+            canvas.drawLine(cx - r - tick * 0.35f, cy, cx - r + tick, cy, p)
+            canvas.drawLine(cx + r + tick * 0.35f, cy, cx + r - tick, cy, p)
+        }
+        canvas.drawCircle(cx, cy, 4.5f * density, white)
+        canvas.drawCircle(cx, cy, 3f * density, crossDot)
     }
 
     private fun drawTrack(canvas: Canvas, t: Track, paint: Paint) {

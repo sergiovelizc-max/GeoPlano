@@ -51,6 +51,9 @@ class MapActivity : AppCompatActivity() {
     private lateinit var fabRecord: FloatingActionButton
     private lateinit var measurePanel: MaterialCardView
     private lateinit var measureText: TextView
+    private lateinit var crossPanel: MaterialCardView
+    private lateinit var crossText: TextView
+    private var crossCenter: DoubleArray? = null
 
     private var follow = false
     private var measuring = false
@@ -78,6 +81,11 @@ class MapActivity : AppCompatActivity() {
         fabRecord = findViewById(R.id.fabRecord)
         measurePanel = findViewById(R.id.measurePanel)
         measureText = findViewById(R.id.measureText)
+        crossPanel = findViewById(R.id.crossPanel)
+        crossText = findViewById(R.id.crossText)
+        findViewById<Button>(R.id.crossPin).setOnClickListener {
+            crossCenter?.let { editPlacemark(null, it[0], it[1]) }
+        }
 
         val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
         toolbar.title = m.name
@@ -136,6 +144,7 @@ class MapActivity : AppCompatActivity() {
         }
         mapView.onPlacemarkTap = { p -> editPlacemark(p, p.lat, p.lon) }
         mapView.onViewportChanged = { rect, scale -> requestDetail(rect, scale) }
+        mapView.onCenterChanged = { lat, lon -> crossCenter = doubleArrayOf(lat, lon); updateCrossText() }
 
         if (!m.isGeoreferenced) {
             info.text = "Este PDF no trae georreferencia. Se puede ver, pero sin GPS."
@@ -154,6 +163,7 @@ class MapActivity : AppCompatActivity() {
             }
             baseWidthPx = bmp.width
             mapView.setMap(m, bmp)
+            updateCrosshair()
         }
 
         lifecycleScope.launch {
@@ -200,10 +210,34 @@ class MapActivity : AppCompatActivity() {
             sb.append("\n● Grabando: ").append(GeoMath.formatDistance(GeoMath.pathLength(t.points.map { doubleArrayOf(it.lat, it.lon) })))
         }
         info.text = sb
-        if (follow) mapView.centerOn(loc.latitude, loc.longitude)
+        if (follow) mapView.centerOn(loc.latitude, loc.longitude) else updateCrossText()
+    }
+
+    /** Mira visible cuando no sigues tu posición y no estás midiendo. */
+    private fun updateCrosshair() {
+        val show = entry.isGeoreferenced && !follow && !measuring
+        mapView.crosshair = show
+        crossPanel.visibility = if (show) View.VISIBLE else View.GONE
+    }
+
+    private fun updateCrossText() {
+        val c = crossCenter ?: return
+        val sb = StringBuilder()
+        sb.append("UTM ").append(GeoMath.formatUtm(c[0], c[1])).append('\n')
+        sb.append(GeoMath.formatLatLon(c[0], c[1]))
+        val loc = LocationRepository.location.value
+        if (loc != null) {
+            val d = GeoMath.distance(loc.latitude, loc.longitude, c[0], c[1])
+            val b = GeoMath.bearing(loc.latitude, loc.longitude, c[0], c[1])
+            sb.append('\n').append("Desde ti: ").append(GeoMath.formatDistance(d))
+                .append(" · ").append(b.toInt()).append("° ").append(GeoMath.cardinal(b))
+        }
+        if (!entry.contains(c[0], c[1])) sb.append("\n(fuera del marco del plano)")
+        crossText.text = sb
     }
 
     private fun updateFollowIcon() {
+        updateCrosshair()
         fabLocate.backgroundTintList = android.content.res.ColorStateList.valueOf(
             if (follow) ContextCompat.getColor(this, R.color.location) else ContextCompat.getColor(this, R.color.brand)
         )
@@ -241,6 +275,7 @@ class MapActivity : AppCompatActivity() {
         measuring = !measuring
         measurePts.clear()
         measurePanel.visibility = if (measuring) View.VISIBLE else View.GONE
+        updateCrosshair()
         updateMeasure()
     }
 

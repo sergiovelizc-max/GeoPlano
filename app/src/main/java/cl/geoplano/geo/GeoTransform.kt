@@ -188,4 +188,52 @@ object GeoMath {
 
     fun formatLatLon(lat: Double, lon: Double): String =
         String.format(java.util.Locale.US, "%.6f, %.6f", lat, lon)
+
+    /** Rumbo inicial (grados desde el norte, 0–360) de 1 a 2. */
+    fun bearing(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val p1 = Math.toRadians(lat1); val p2 = Math.toRadians(lat2)
+        val dl = Math.toRadians(lon2 - lon1)
+        val y = sin(dl) * cos(p2)
+        val x = cos(p1) * sin(p2) - sin(p1) * cos(p2) * cos(dl)
+        return (Math.toDegrees(atan2(y, x)) + 360) % 360
+    }
+
+    fun cardinal(deg: Double): String {
+        val names = arrayOf("N", "NE", "E", "SE", "S", "SO", "O", "NO")
+        return names[(((deg + 22.5) % 360) / 45).toInt()]
+    }
+
+    /** UTM WGS84: [zona, este, norte, 1 si hemisferio sur]. */
+    fun toUtm(lat: Double, lon: Double): DoubleArray {
+        val a = 6378137.0
+        val f = 1 / 298.257223563
+        val k0 = 0.9996
+        val e2 = f * (2 - f)
+        val ep2 = e2 / (1 - e2)
+        val zone = Math.floor((lon + 180) / 6).toInt() + 1
+        val lon0 = Math.toRadians((zone - 1) * 6 - 180 + 3.0)
+        val phi = Math.toRadians(lat)
+        val n = a / sqrt(1 - e2 * sin(phi) * sin(phi))
+        val t = Math.tan(phi) * Math.tan(phi)
+        val c = ep2 * cos(phi) * cos(phi)
+        val aa = cos(phi) * (Math.toRadians(lon) - lon0)
+        val e4 = e2 * e2; val e6 = e4 * e2
+        val m = a * ((1 - e2 / 4 - 3 * e4 / 64 - 5 * e6 / 256) * phi -
+            (3 * e2 / 8 + 3 * e4 / 32 + 45 * e6 / 1024) * sin(2 * phi) +
+            (15 * e4 / 256 + 45 * e6 / 1024) * sin(4 * phi) -
+            (35 * e6 / 3072) * sin(6 * phi))
+        val east = k0 * n * (aa + (1 - t + c) * Math.pow(aa, 3.0) / 6 +
+            (5 - 18 * t + t * t + 72 * c - 58 * ep2) * Math.pow(aa, 5.0) / 120) + 500000.0
+        var north = k0 * (m + n * Math.tan(phi) * (aa * aa / 2 +
+            (5 - t + 9 * c + 4 * c * c) * Math.pow(aa, 4.0) / 24 +
+            (61 - 58 * t + t * t + 600 * c - 330 * ep2) * Math.pow(aa, 6.0) / 720))
+        val south = lat < 0
+        if (south) north += 10_000_000.0
+        return doubleArrayOf(zone.toDouble(), east, north, if (south) 1.0 else 0.0)
+    }
+
+    fun formatUtm(lat: Double, lon: Double): String {
+        val u = toUtm(lat, lon)
+        return String.format(java.util.Locale.US, "%d%s  E %.0f  N %.0f", u[0].toInt(), if (u[3] == 1.0) "S" else "N", u[1], u[2])
+    }
 }

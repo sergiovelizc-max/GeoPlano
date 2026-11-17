@@ -80,6 +80,13 @@ class CarMapRenderer(private val carContext: CarContext, private val scope: Coro
     }
     private val pin = Paint(Paint.ANTI_ALIAS_FLAG)
     private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE; isFakeBoldText = true }
+    private val cross = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.rgb(110, 110, 110); style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND
+    }
+    private val crossHalo = Paint(cross).apply { color = Color.argb(170, 255, 255, 255) }
+    private val guide = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(200, 30, 136, 229); style = Paint.Style.STROKE
+    }
 
     fun setMap(entry: MapEntry?) {
         if (entry?.id == map?.id && base != null) return
@@ -142,6 +149,10 @@ class CarMapRenderer(private val carContext: CarContext, private val scope: Coro
         dpi = container.dpi
         text.textSize = 14f * density
         trk.strokeWidth = 5f * density
+        cross.strokeWidth = 3.5f * density
+        crossHalo.strokeWidth = 7f * density
+        guide.strokeWidth = 2.5f * density
+        guide.pathEffect = android.graphics.DashPathEffect(floatArrayOf(10f * density, 8f * density), 0f)
         if (scale == 0f) resetView() else draw()
     }
 
@@ -260,12 +271,36 @@ class CarMapRenderer(private val carContext: CarContext, private val scope: Coro
                     }
                     canvas.drawPath(path, cone)
                 }
+                if (!follow) canvas.drawLine(x, y, area().exactCenterX(), area().exactCenterY(), guide)
                 canvas.drawCircle(x, y, 12f * density, white)
                 canvas.drawCircle(x, y, 9f * density, dot)
             }
+            if (!follow) drawCrosshair(canvas)
         } finally {
             runCatching { s.unlockCanvasAndPost(canvas) }
         }
+    }
+
+    /** Mira central cuando el plano se desplaza a mano. */
+    private fun drawCrosshair(canvas: Canvas) {
+        val cx = area().exactCenterX(); val cy = area().exactCenterY()
+        val r = 28f * density
+        val tick = 10f * density
+        for (p in arrayOf(crossHalo, cross)) {
+            canvas.drawCircle(cx, cy, r, p)
+            canvas.drawLine(cx, cy - r - tick * 0.35f, cx, cy - r + tick, p)
+            canvas.drawLine(cx, cy + r + tick * 0.35f, cx, cy + r - tick, p)
+            canvas.drawLine(cx - r - tick * 0.35f, cy, cx - r + tick, cy, p)
+            canvas.drawLine(cx + r + tick * 0.35f, cy, cx + r - tick, cy, p)
+        }
+        canvas.drawCircle(cx, cy, 4.5f * density, white)
+        canvas.drawCircle(cx, cy, 3f * density, Paint(cross).apply { style = Paint.Style.FILL })
+    }
+
+    /** [lat, lon] bajo la mira, o null si se está siguiendo la posición. */
+    fun crosshairGeo(): DoubleArray? {
+        if (follow || scale == 0f) return null
+        return map?.transform?.toGeo(cx.toDouble(), cy.toDouble())
     }
 
     // ---------- detalle en alta resolución ----------
